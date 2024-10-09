@@ -1,0 +1,67 @@
+version: "3"
+
+services:
+
+  karavan:
+    container_name: karavan
+    image: ghcr.io/apache/camel-karavan:4.8.0
+    ports:
+      - "8179:8080"
+    environment:
+      - KARAVAN_GIT_REPOSITORY=http://gitea:3000/karavan/routes_karavan.git
+      - KARAVAN_GIT_USERNAME=karavan
+      - KARAVAN_GIT_PASSWORD=karavan@2024
+      - KARAVAN_GIT_BRANCH=main
+      - KARAVAN_CONTAINER_IMAGE_REGISTRY=registry:5000
+      - KARAVAN_CONTAINER_IMAGE_REGISTRY_USERNAME=
+      - KARAVAN_CONTAINER_IMAGE_REGISTRY_PASSWORD=
+      - KARAVAN_CONTAINER_IMAGE_GROUP=karavan
+      - KARAVAN_DOCKER_NETWORK=karavan
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"    
+    labels:
+      - "org.apache.camel.karavan/type=internal"
+
+  registry:
+    container_name: registry
+    image: registry:2
+    restart: always
+    ports:
+      - "5555:5000"
+    labels:
+      - "org.apache.camel.karavan/type=internal"  
+
+  gitea:
+    image: gitea/gitea
+    container_name: gitea
+    environment:
+        - USER_UID=1000 # Enter the UID found from previous command output
+        - USER_GID=100 # Enter the GID found from previous command output
+        - GITEA__database__DB_TYPE=mysql
+        - GITEA__database__HOST=db:3306
+        - GITEA__database__NAME=gitea
+        - GITEA__database__USER=gitea
+        - GITEA__database__PASSWD=gitea
+    restart: always
+    volumes:
+        - ./gitea:/data
+        - /etc/timezone:/etc/timezone:ro
+        - /etc/localtime:/etc/localtime:ro
+    ports:
+        - "3000:3000"
+        - "222:22"
+    depends_on:
+        - db
+
+  db:
+    image: mysql
+    restart: always
+    environment:
+        - MYSQL_ROOT_PASSWORD=gitea
+        - MYSQL_USER=gitea
+        - MYSQL_PASSWORD=gitea
+        - MYSQL_DATABASE=gitea
+    ports:
+        - "3306:3306"
+    volumes:
+        - ./mysql:/var/lib/mysql
